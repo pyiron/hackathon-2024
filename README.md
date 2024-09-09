@@ -1,5 +1,5 @@
 # pyiron hackathon 2024 
-This is for repository for the pyiron hackathon from the 9.-11. Sept. 2024. 
+This is for repository for the pyiron hackathon from the 9.-11. Sept. 2024 at the [Max-Planck-Institute for Sustainable Materials](https://www.mpie.de/).
 
 ## Topic 
 The focus of this hackathon is [functional programming](https://en.wikipedia.org/wiki/Functional_programming) and how functions with clear defined input and output simplify the construction of complex simulation workflows. 
