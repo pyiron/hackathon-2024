@@ -1,7 +1,7 @@
 from pyiron_workflow import Workflow
 
 @Workflow.wrap.as_function_node()
-def obtain_potential(folder:str,pot_str:str):
+def obtain_potential(pot_str:str):
     from pyiron_atomistics.lammps.potential import LammpsPotentialFile,LammpsPotential
 
     # Potential file details
@@ -13,4 +13,4 @@ def obtain_potential(folder:str,pot_str:str):
     element_list = LammpsPotential()
     element_list.df = potential
     elements = element_list.get_element_lst()
-    return config, files, elements
+    return config, files, elements, element_list  
