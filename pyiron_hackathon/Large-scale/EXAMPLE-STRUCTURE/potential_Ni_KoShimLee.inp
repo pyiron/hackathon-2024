@@ -1,0 +1,2 @@
+pair_style meam
+pair_coeff * * /cephyr/users/ageo/Vera/projects/ipd/hafftough/ni-h-embrittlement_newstart_2024-07-10/pairpotentials//Ni_KoShimLee_library.meam Ni /cephyr/users/ageo/Vera/projects/ipd/hafftough/ni-h-embrittlement_newstart_2024-07-10/pairpotentials//Ni_KoShimLee.meam Ni
