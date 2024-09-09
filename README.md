@@ -11,7 +11,7 @@ Consequently the goal of the hackathon is that every participant creates a simul
 | Time             | Presenter                      | Title                                                             |
 |-------------|-----------------------|-----------------------------------------|
 | 10:00-10:30 | J. Neugebauer            | Introduction                                                |
-| 10:30-11:00 | J. Janssen                   | Setup pyiron development environment  |
+| 10:30-11:00 | J. Janssen                   | [Setup pyiron development environment](tutorials/environment.md)  |
 | 11:00-12:00 |	                              |	Coordination in Groups                              |
 | 12:00-13:00 |	                              |	Lunch break |
 | 13:00-15:00 |	                              | Coding |
