@@ -8,12 +8,22 @@ def rotate_elasticity_tensor(
     c13: Optional[float|int],
     c33: Optional[float|int],
     c44: Optional[float|int],
-    orient_x: Optional[list[int]],
-    orient_y: Optional[list[int]],
-    orient_z: Optional[list[int]],
-    crystal: Optional[str]
+    crystal: Optional[str],
+    x_indices: Optional[str] = '1 0 0',
+    y_indices: Optional[str] = '0 1 0',
+    z_indices: Optional[str] = '0 0 1'
 ):
+    '''
+    Returns the elasticity tensor rotated in given orientation.
+    Currently supports cubic, c14 and hcp structures.
 
+
+        Parameters:
+            c11, c12, c13, c33, c44: elastic constants in GPA
+            crystal: hcp/c14/cubic(fcc, bcc etc.)
+            x_indices, y_indices, z_indices: the desired miller indices for the three coordinate axes
+    '''
+    
     import numpy as np
     
     # base crystal orientation
@@ -54,10 +64,18 @@ def rotate_elasticity_tensor(
     return C
 
 @as_function_node("theoretical_k_griffith")
-def theoretical_griffith_fracture_toughness(
+def theoretical_K_griffith(
     C,
     gamma_s: Optional[float|int],
 ):
+    '''
+    Returns the theoretical Griffith fracture toughness for a desired material im MPa sqrt(m).
+
+
+        Parameters:
+            C: the elasticity tensor rotated to desired orientation
+            gamma_s: Surface energy in J/m2
+    '''
 
     import numpy as np
     A1 = np.linalg.inv(C) #Compliance tensor
