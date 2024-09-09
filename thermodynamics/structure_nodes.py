@@ -4,7 +4,7 @@ from pyiron_workflow import Workflow
 
 @Workflow.wrap.as_function_node()
 def get_structure(a0: float ,species: str, lattice_type: str, cubic:bool, repeat:np.ndarray ,a2: Optional[float]):
-   from pyiron import Project
+    from pyiron import Project
     pr = Project('structure')
     structure = pr.create.structure.bulk(a=a0,c=a2,name=species,
                                          crystalstructure=lattice_type, cubic=cubic).repeat(repeat)
