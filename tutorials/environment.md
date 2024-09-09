@@ -112,3 +112,99 @@ Create your pull request by pressing the green `Create pull request` button in t
 
 ### Summary 
 Now you learned how to creare an SSH key, use this SSH key to checkout git repositories from Github, create your own branches, commit changes open pull requests and merge them.  
+
+## Development Environment 
+### Setup Conda Environment
+If you are using the development environment on CMTI cluster, you can skip the first step. If you are using a different Linux workstation the following steps might be required:
+* Download the latest version of Miniforge [github.com/conda-forge/miniforge/releases](https://github.com/conda-forge/miniforge/releases)
+* For a Linux installation with Intel or AMD processor download the `Mambaforge-24.7.1-0-Linux-x86_64.sh` file. The version number `24.7.1-0` might change in the future.
+* Download the latest conda environment file from [github.com/pyiron/docker-stacks/releases](https://github.com/pyiron/docker-stacks/releases)
+* For the purpose of this hackathon we use the CMTI profile `pyiron_mpie_cmti_2024-09-09.yml`. The date `2024-09-09` might change in the future, using the latest environment is recommended.
+* Create an environment using `conda env create -f pyiron_mpie_cmti_2024-09-09.yml -p /home/janssen/pyironhackathon`. In this example the environment is created in `/home/janssen/pyironhackathon`.
+* Activate this environment using `conda activate /home/janssen/pyironhackathon`
+
+### Modify the Python Path in your Jupyter Notebook
+The easiest way to modify your `PYTHONPATH` is inside your jupyter notebook. Open a new jupyter notebook using the latest kernel and add the following lines: 
+```
+import sys
+sys.path.append("/u/janj/projects/hackathon-2024")
+
+import pyiron_hackathon
+>>> Welcome to the pyironhackathon 2024
+pyiron_hackathon.__file__
+>>> '/u/janj/projects/hackathon-2024/pyiron_hackathon/__init__.py'
+```
+
+In this example `/u/janj/projects/hackathon-2024` refers to the location where the hackathon repository [github.com/pyiron/hackathon-2024](https://github.com/pyiron/hackathon-2024) is stored on your system. 
+
+### Create your own Jupyter Kernel 
+While it is technically possible to add the python path to each of your Jupyter notebooks, a more elegant way is to include the `PYTHONPATH` inside your jupyter kernel. To create your own jupyter kernel we first have to find your current kernels. Check the location of your `conda` executable:
+```
+which conda
+>>> /cmmc/ptmp/pyironhb/mambaforge/envs/pyiron_mpie_cmti_2024-09-02/bin/conda
+```
+Navigate to the folder which includes the current kernel: 
+```
+cd /cmmc/ptmp/pyironhb/mambaforge/envs/pyiron_mpie_cmti_2024-09-02/share/jupyter/kernels/python3
+ls
+>>> kernel.json  logo-32x32.png  logo-64x64.png  logo-svg.svg
+```
+Create a directory for your own kernel in your home directory and copy the current kernel: 
+```
+mkdir -p ~/.local/share/jupyter/kernels/pyironhackathon
+cp /cmmc/ptmp/pyironhb/mambaforge/envs/pyiron_mpie_cmti_2024-09-02/share/jupyter/kernels/python3/* ~/.local/share/jupyter/kernels/pyironhackathon
+cd ~/.local/share/jupyter/kernels/pyironhackathon
+ls
+>>> kernel.json  logo-32x32.png  logo-64x64.png  logo-svg.svg
+```
+Modify the `kernel.json` file, be careful it is `JSON` file, so it is sensitive to the placement of `,` and spaces. The current file should look like this 'cat kernel.json`:
+```
+{
+ "argv": [
+  "/cmmc/ptmp/pyironhb/mambaforge/envs/pyiron_mpie_cmti_2024-09-02/bin/python",
+  "-m",
+  "ipykernel_launcher",
+  "-f",
+  "{connection_file}"
+ ],
+ "display_name": "server version (python3.11)",
+ "language": "python",
+ "metadata": {
+  "debugger": true
+ },
+ "env": {
+  "CONDA_PREFIX": "/cmmc/ptmp/pyironhb/mambaforge/envs//pyiron_mpie_cmti_2024-09-02/"
+ }
+}
+```
+Add a `,` at the end of the `CONDA_PREFIX` line and afterwards add new line with the `PYTHONPATH` but without a `,` at the end. The final configuration should look like this: 
+```
+{
+ "argv": [
+  "/cmmc/ptmp/pyironhb/mambaforge/envs/pyiron_mpie_cmti_2024-09-02/bin/python",
+  "-m",
+  "ipykernel_launcher",
+  "-f",
+  "{connection_file}"
+ ],
+ "display_name": "pyironhackathon",
+ "language": "python",
+ "metadata": {
+  "debugger": true
+ },
+ "env": {
+  "CONDA_PREFIX": "/cmmc/ptmp/pyironhb/mambaforge/envs//pyiron_mpie_cmti_2024-09-02/",
+  "PYTHONPATH": "/u/janj/projects/hackathon-2024"
+ }
+}
+```
+For asthetics you can also modify the `display_name` to simplify finding your kernel. 
+
+If you installed your own conda version replace `/cmmc/ptmp/pyironhb/mambaforge/envs/pyiron_mpie_cmti_2024-09-02/bin/python` with the location of your python executable and `/cmmc/ptmp/pyironhb/mambaforge/envs//pyiron_mpie_cmti_2024-09-02/` with the path to your environment listed by the `which conda` command. 
+
+After restarting your jupyter server you should be able to select your kernel and directly import `pyiron_hackathon` without setting the `PYTHONPATH` inside your jupyter notebook. 
+
+![Pull Request](images/jupyter.png)
+
+### Summary 
+You now learned how to modify your `PYTHONPATH` to load any kind of python module, to directly use your modified python module in your jupyter notebook. 
