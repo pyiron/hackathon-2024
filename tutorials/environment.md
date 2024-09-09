@@ -46,7 +46,7 @@ You can write the changes and quit `vi` by pressing `esc` followed by `:wq`.
 * Click the green "Add SSH key" button in the top right corner.
 * Copy the content of your public key `/u/janj/.ssh/github.pub` into the form and click the "Add SSH key" button to confirm.
 
-![Add SSH key](githubsshkey.png)
+![Add SSH key](images/githubsshkey.png)
 
 ### Checkout a Repository from Github
 Navigate to the directory where you want to store your Github repositories on your Linux system, for example `~/projects` which can be created using `mkdir -p ~/project`:
@@ -106,7 +106,7 @@ git push --set-upstream origin dev_janssen
 ### Create a Pull Request on Github
 Follow the suggestion above to create a pull request for your new branch, visit [https://github.com/pyiron/hackathon-2024/pull/](https://github.com/pyiron/hackathon-2024/pull/) at the top you shoud see a notification about your new branch and a green button to `compare & pull request`:
 
-![Pull Request](pullrequest.png)
+![Pull Request](images/pullrequest.png)
 
 Create your pull request by pressing the green `Create pull request` button in the bottom center. On the next screen you can directly merge your pull request by clicking the green `Merge pull request` button. This only applies to this repository, for all other repositories in the pyiron organisation please wait until somebody has reviewed your pull request before merging it.
 
