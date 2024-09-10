@@ -1,7 +1,7 @@
 from pyiron_workflow import as_function_node
 from typing import Optional
 
-@as_function_node("create_box")
+@as_function_node("structure")
 def create_box_single_species(
     crystal: Optional[str],
     lattice_constant_a: Optional[float|int],
