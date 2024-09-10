@@ -3,11 +3,20 @@ import numpy as np
 from pyiron_workflow import Workflow
 
 @Workflow.wrap.as_function_node()
-def get_structure(a0: float ,species: str, lattice_type: str, cubic:bool, repeat:np.ndarray ,a2: Optional[float]):
+def get_structure(species: str, 
+                  a0: Optional[float]= None, 
+                  lattice_type: Optional[str]= None, 
+                  cubic: Optional[bool]= True,
+                  repeat: Optional[tuple]= (1,1,1), 
+                  a2: Optional[float]= None):
+    
     from pyiron_atomistics import Project
     pr = Project('structure')
-    structure = pr.create.structure.bulk(a=a0,c=a2,name=species,
-                                         crystalstructure=lattice_type, cubic=cubic).repeat(repeat)
+    structure = pr.create.structure.bulk(a=a0,
+                                         c=a2,
+                                         name=species,
+                                         crystalstructure=lattice_type,
+                                         cubic=cubic).repeat(repeat)
     return structure
 
 if __name__=='__main__':
