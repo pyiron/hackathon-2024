@@ -23,8 +23,7 @@ Consequently the goal of the hackathon is that every participant creates a simul
 
 | Time           | Presenter  | Title |
 |------------|-----------------------|----------------|
-| 10:00-10:30	| J. Janssen | Develop Python Modules and share your code with git |
-| 10:30-12:00	|		     | Coding |
+| 10:00-12:00	|		     | Coding |
 | 12:00-13:00	|		     | Lunch break |
 | 13:00-15:00	|                    | Coding |
 | 15:00-15:30	|		     | Coffee Break |
