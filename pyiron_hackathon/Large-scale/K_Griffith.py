@@ -71,7 +71,7 @@ def rotate_elasticity_tensor(
     return C
 
 @as_function_node("theoretical_k_griffith")
-def theoretical_K_griffith(
+def theor_K_griffith_plane_strain(
     C,
     gamma_s: Optional[float|int],
 ):
