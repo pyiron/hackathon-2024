@@ -33,14 +33,17 @@ def get_dataframe(pr):
     tab = pr.create.table("Table", delete_existing_job=True)
     tab.add["F"] = lambda j: j.content["output/generic/dft/energy_free"][-1]
     tab.add["E0"] = lambda j: j.content["output/generic/dft/energy_zero"][-1]
+    tab.add["U"] = lambda j: j.content["output/generic/dft/energy_int"][-1]
     tab.add.get_total_number_of_atoms
     tab.add.get_sigma
     tab.run()
     df = tab.get_dataframe()
     df["f"] = df.F / df.Number_of_atoms
     df["e0"] = df.E0 / df.Number_of_atoms
+    df["u"] = df.U / df.Number_of_atoms
     df["fel"] = df.F - df.E0
     df["T"] = df.sigma / kB
+    df.sort_values(by="T", inplace=True)
     return df
 
 
@@ -229,15 +232,14 @@ def get_s(f):
 def get_S(E, D, T, N=12, gamma=2):
     fermi_energy = get_fermi_energy(E, D, T, N)
     f = fermi_distribution(E, T, fermi_energy)
-    s = get_s(f)
-    return np.sum(gamma * kB * s * D[:, None])
+    return gamma * kB * np.sum(get_s(f) * D[:, None])
 
 
 def get_U(E, D, T, N=12):
     fermi_energy = get_fermi_energy(E, D, T, N)
     f = fermi_distribution(E, T, fermi_energy)
     fermi_energy_0 = get_fermi_energy(E, D, 0, N)
-    return np.sum(D[:, None] * f * E) - np.sum(D[:, None] * (E < fermi_energy_0) * E)
+    return np.sum(D[:, None] * (f - (E < fermi_energy_0)) * (E - fermi_energy))
 
 
 def electronic_entropy_from_job(j, Ts, mode=DOSCAR()):
@@ -250,7 +252,7 @@ def electronic_entropy_from_job(j, Ts, mode=DOSCAR()):
             density,
             T,
             j.get_nelect(),
-            mu0=j.content["output/electronic_structure/fermi_distribution"],
+            mu0=j.content["output/electronic_structure/efermi"],
         )
         U, S = energy_entropy(energy, density, f, mu)
         return {"T": T, "U": U, "S": S, "mu": mu}
