@@ -51,15 +51,15 @@ def integrate(y, x):
         return sit.trapezoid(y=y, x=x)
 
 
-def efermi(e, T, mu):
-    if T != 0:
-        return 1 / (1 + np.exp(((e - mu) / kB / T)))
+def fermi_distribution(energy, temperature, fermi_energy):
+    if temperature > 0:
+        return 1 / (1 + np.exp(((energy - fermi_energy) / kB / temperature)))
     else:
-        return 1 * (e <= mu)
+        return 1 * (energy <= fermi_energy)
 
 
 def occ(e, n, T, mu):
-    f = efermi(e, T, mu)
+    f = fermi_distribution(e, T, mu)
     return integrate(f * n, e)
 
 
@@ -98,7 +98,7 @@ def find_mu(e, n, T, N, mu0=None):
 
 def find_fermi(e, n, T, N, mu0=None):
     mu = find_mu(e, n, T, N, mu0=mu0)
-    f = efermi(e, T, mu)
+    f = fermi_distribution(e, T, mu)
     return f, mu
 
 
@@ -200,14 +200,44 @@ class Gaussian(DosMode):
         return f"SelfRolledGauss({self.smear}, {self.npoints})"
 
 
+def get_fermi_energy(E, D, T, N, n_steps=30):
+    mu = E.min()
+    dmu = np.std(E)
+    for _ in range(n_steps):
+        if np.sum(fermi_distribution(E, T, mu) * D[:, None]) > N:
+            mu -= dmu
+        else:
+            mu += dmu
+        dmu /= 2
+    return mu
+
+
 def get_eigenvalues(job):
     eigenvals = job.content["output/generic/dft/bands/eig_matrix"]
     weights = job.content["output/electronic_structure/k_weights"]
     weights *= 3 - eigenvals.shape[0]
     return {
-        "energy": eigenvals.flatten(),
-        "density": weights.flatten(),
+        "density": weights.squeeze(),
+        "energy": eigenvals.squeeze(),
     }
+
+
+def get_s(f):
+    return entr(f) + entr(1 - f)
+
+
+def get_S(E, D, T, N=12, gamma=2):
+    fermi_energy = get_fermi_energy(E, D, T, N)
+    f = fermi_distribution(E, T, fermi_energy)
+    s = get_s(f)
+    return np.sum(gamma * kB * s * D[:, None])
+
+
+def get_U(E, D, T, N=12):
+    fermi_energy = get_fermi_energy(E, D, T, N)
+    f = fermi_distribution(E, T, fermi_energy)
+    fermi_energy_0 = get_fermi_energy(E, D, 0, N)
+    return np.sum(D[:, None] * f * E) - np.sum(D[:, None] * (E < fermi_energy_0) * E)
 
 
 def electronic_entropy_from_job(j, Ts, mode=DOSCAR()):
@@ -220,7 +250,7 @@ def electronic_entropy_from_job(j, Ts, mode=DOSCAR()):
             density,
             T,
             j.get_nelect(),
-            mu0=j.content["output/electronic_structure/efermi"],
+            mu0=j.content["output/electronic_structure/fermi_distribution"],
         )
         U, S = energy_entropy(energy, density, f, mu)
         return {"T": T, "U": U, "S": S, "mu": mu}
