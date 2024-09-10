@@ -120,4 +120,22 @@ def RunCalculation(calculation, simfolder):
         routine_pscale(job)
     else:
         raise ValueError("Unknown mode")
-    return job.report
+    return job
+
+@Workflow.wrap.as_function_node()
+def GetResults(job):
+    import os
+    import matplotlib.pyplot as plt
+    if job.calc.mode == 'fe':
+        results = job.report
+    elif job.calc.mode == 'ts':
+        results = job.report
+        resfile = os.path.join(job.simfolder, 'temperature_sweep.dat')
+        temp, fe = np.loadtxt(resfile, 
+                unpack=True, usecols=(0,1))
+        plt.plot(temp, fe)
+        plt.xlabel('Temperature (K)')
+        plt.ylabel('Free energy (eV/K)')
+        plt.show()
+    return results
+    
