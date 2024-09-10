@@ -1,3 +1,7 @@
+"""
+TODO
+- Make a Dataclass for the output
+"""
 from pyiron_workflow import Workflow
 
 @Workflow.wrap.as_function_node()

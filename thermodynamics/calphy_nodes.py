@@ -1,5 +1,9 @@
 from pyiron_workflow import Workflow
 import numpy as np
+from structure_nodes import *
+from thermo_potential import *
+from dataclasses import dataclass, asdict
+from typing import Optional
 
 def CreateInputDict():
     return {
@@ -55,6 +59,9 @@ def Initialize(inputdict, structure, potential_obj, files, potential_config):
     import os
     from calphy.input import Calculation
     import shutil
+    from dataclasses import asdict
+
+    inputdict = asdict(inputdict)
     
     #filename of structure
     file_name = os.path.join(os.getcwd(), 'temp.struct.dat')
@@ -138,4 +145,104 @@ def GetResults(job):
         plt.ylabel('Free energy (eV/K)')
         plt.show()
     return results
+
+@Workflow.wrap.as_function_node("temperature", "free_energy")
+def ParseTS(job):
+    import os
+    results = job.report
+    if job.calc.mode == 'ts':
+        resfile = os.path.join(job.simfolder, 'temperature_sweep.dat')
+        temp, fe = np.loadtxt(resfile, 
+            unpack=True, usecols=(0,1))
+    elif job.calc.mode == 'fe':
+        temp = job.report['input']['temperature']
+        fe = job.report['results']['free_energy']
+    return temp, fe
+
+
+
+
+@dataclass
+class MD:
+    timestep: float = 0.001
+    n_small_steps: int = 10000
+    n_every_steps: int = 10
+    n_repeat_steps: int = 10
+    n_cycles: int = 100
+    thermostat_damping: float = 0.5
+    barostat_damping: float = 0.1
+
+@dataclass
+class Tolerance:
+    lattice_constant: float = 0.0002
+    spring_constant: float = 0.01
+    solid_fraction: float = 0.7
+    liquid_fraction: float = 0.05
+    pressure: float = 0.5
+
+@dataclass
+class NoseHoover:
+    thermostat_damping: float = 0.1
+    barostat_damping: float = 0.1
+
+@dataclass
+class Berendsen:
+    thermostat_damping: float = 100.0
+    barostat_damping: float = 100.0
+
+@dataclass
+class Queue:
+    cores: int = 1
+
+@dataclass
+class InputClass:
+    md: Optional[MD] = None
+    tolerance: Optional[Tolerance] = None
+    nose_hoover: Optional[NoseHoover] = None
+    berendsen: Optional[Berendsen] = None
+    queue: Optional[Queue] = None
+    pressure: int = 0
+    temperature: int = 0
+    npt: bool = True
+    n_equilibration_steps: int = 15000
+    n_switching_steps: int = 25000
+    n_print_steps: int = 1000
+    n_iterations: int = 1
+    equilibration_control: str = "nose_hoover"
+    melting_cycle: bool = True
+    reference_phase: Optional[str] = None
+    mode: Optional[str] = None
+    spring_constants: Optional[float] = None
+    
+    def __post_init__(self):
+        self.md = MD()
+        self.tolerance = Tolerance()
+        self.nose_hoover = NoseHoover()
+        self.berendsen = Berendsen()
+        self.queue = Queue()
+
+@Workflow.wrap.as_function_node()
+def UpdateTemperature(inp, temperature):
+    inp.temperature = temperature
+    return inp
+
+#@Workflow.wrap.as_macro_node("temperature", "free_energy")
+@Workflow.wrap.as_macro_node('incremented_temp')
+def RunFreeEnergy(wf, inp, species: str, 
+                  potential: str, temperature: float):
+
+    wf.step1 = obtain_potential(potential)
+    wf.step2 = get_structure(species=species, repeat=(2,2,2))
+    wf.step2a = UpdateTemperature(inp, temperature)
+    wf.step3 = Initialize(wf.step2a.outputs.inp, 
+                          wf.step2.outputs.structure,
+                     wf.step1.outputs.element_list,
+                     wf.step1.outputs.files,
+                     wf.step1.outputs.config)
+    wf.step4 = RunCalculation(wf.step3.outputs.calculation,
+                         wf.step3.outputs.simfolder)
+    wf.step5 = ParseTS(wf.step4.outputs.job)
+    #return wf.step5.outputs.temperature, wf.step5.outputs.free_energy
+    incremented_temp = wf.step5.outputs.temperature + 100. 
+    return incremented_temp
     
