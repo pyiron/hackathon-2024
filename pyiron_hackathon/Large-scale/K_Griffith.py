@@ -9,9 +9,9 @@ def rotate_elasticity_tensor(
     c33: Optional[float|int],
     c44: Optional[float|int],
     crystal: Optional[str],
-    x_indices: Optional[str] = '1 0 0',
-    y_indices: Optional[str] = '0 1 0',
-    z_indices: Optional[str] = '0 0 1'
+    x_indices: Optional[str|list[int]] = '1 0 0',
+    y_indices: Optional[str|list[int]] = '0 1 0',
+    z_indices: Optional[str|list[int]] = '0 0 1'
 ):
     '''
     Returns the elasticity tensor rotated in given orientation.
@@ -25,6 +25,13 @@ def rotate_elasticity_tensor(
     '''
     
     import numpy as np
+
+    if isinstance(x_indices, str):
+        x_indices = [int(i) for i in x_indices.split()]
+    if isinstance(y_indices, str):
+        y_indices = [int(i) for i in y_indices.split()]
+    if isinstance(z_indices, str):
+        z_indices = [int(i) for i in z_indices.split()]
     
     # base crystal orientation
     e1 = [1, 0, 0]; e2 = [0., 1., 0.]; e3 = [0, 0, 1]
@@ -32,13 +39,13 @@ def rotate_elasticity_tensor(
             '[-1, 0, 1, 0]': [-1, 0, 0],'[2, -1, -1, 0]': [1, 0, 0],'[-2, 1, 1, 0]': [-1, 0, 0], '[1, -2, 1, 0]': [0, -1, 0],
            '[-1, 2, -1, 0]': [0, 1, 0]}
     if crystal=='c14' or crystal=='hcp':
-        m1 = orient_dict[str(orient_x)]
-        m2 = orient_dict[str(orient_y)]
-        m3 = orient_dict[str(orient_z)]
+        m1 = orient_dict[str(x_indices)]
+        m2 = orient_dict[str(y_indices)]
+        m3 = orient_dict[str(z_indices)]
     else:
-        m1 = orient_x
-        m2 = orient_y
-        m3 = orient_z 
+        m1 = x_indices
+        m2 = y_indices
+        m3 = z_indices 
     m1 /= np.linalg.norm(m1); m2 /= np.linalg.norm(m2); m3 /= np.linalg.norm(m3)
     Q = np.array([[np.matmul(m1,e1), np.matmul(m1,e2), np.matmul(m1,e3)], 
                   [np.matmul(m2,e1), np.matmul(m2,e2), np.matmul(m2,e3)], [np.matmul(m3,e1), np.matmul(m3,e2), np.matmul(m3,e3)]])
@@ -118,4 +125,4 @@ def theoretical_K_griffith(
     K_GG = np.sqrt(2*gamma_s*lambda_coeff*10**9)*10**(-6)
     # print("Theoretical K Griffith is " + str(K_GG) + " MPa*m^1/2")
     
-    return K_GG 
+    return K_GG
