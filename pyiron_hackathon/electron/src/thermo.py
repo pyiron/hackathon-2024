@@ -6,8 +6,42 @@ from scipy.special import entr
 from scipy.constants import Boltzmann, eV
 from abc import ABC, abstractmethod
 import dataclasses
+import pandas as pd
 
 kB = Boltzmann / eV
+
+
+def run_job(pr, name, structure, T):
+    j = pr.create.job.Vasp([name, "T", T])
+    if not j.status.initialized:
+        return j
+    j.structure = structure
+    j.input.incar["ISMEAR"] = -1
+    j.input.incar["SIGMA"] = kB * T
+    j.input.incar["NEDOS"] = 5000
+    j.set_encut(400)  # blazej SFE paper
+    j.set_kpoints([34] * 3)
+    j.calc_static()
+    j.server.queue = "s_cmmg"
+    j.server.cores = 32
+    j.server.run_time = 10 * 60
+    j.run()
+    return j
+
+
+def get_dataframe(pr):
+    tab = pr.create.table("Table", delete_existing_job=True)
+    tab.add["F"] = lambda j: j.content["output/generic/dft/energy_free"][-1]
+    tab.add["E0"] = lambda j: j.content["output/generic/dft/energy_zero"][-1]
+    tab.add.get_total_number_of_atoms
+    tab.add.get_sigma
+    tab.run()
+    df = tab.get_dataframe()
+    df["f"] = df.F / df.Number_of_atoms
+    df["e0"] = df.E0 / df.Number_of_atoms
+    df["fel"] = df.F - df.E0
+    df["T"] = df.sigma / kB
+    return df
 
 
 def integrate(y, x):
@@ -68,15 +102,11 @@ def find_fermi(e, n, T, N, mu0=None):
     return f, mu
 
 
-def energy_entropy(e, n, f, mu, gamma=2):
+def energy_entropy(e, D, f, mu, gamma=2):
     # factor 2 to account for two spin channels -> assumption density is *not* spin polarized
     s = entr(f) + entr(1 - f)  # eq. 9
-    S = gamma * kB * integrate(n * s, e)  # eq. 8
-    # U = integrate( n * (f - 1 * (e <= mu)) * e, e ) # eq. 7 This one works
-    U = integrate(n * f * e, e) - integrate(
-        n[e <= mu] * e[e <= mu], e[e <= mu]
-    )  # This one doesn't
-    # and we don't know why (Ali)
+    S = gamma * kB * integrate(D * s, e)  # eq. 8
+    U = integrate(D * (f - 1 * (e <= mu)) * e, e)  # eq. 7 This one works
     return U, S
 
 
@@ -168,3 +198,38 @@ class Gaussian(DosMode):
 
     def __repr__(self):
         return f"SelfRolledGauss({self.smear}, {self.npoints})"
+
+
+def get_eigenvalues(job):
+    eigenvals = job.content["output/generic/dft/bands/eig_matrix"]
+    weights = job.content["output/electronic_structure/k_weights"]
+    weights *= 3 - eigenvals.shape[0]
+    return {
+        "energy": eigenvals.flatten(),
+        "density": weights.flatten(),
+    }
+
+
+def electronic_entropy_from_job(j, Ts, mode=DOSCAR()):
+    # pre tabulated DOS sucks, unless you happened to have set a high NEDOS
+    energy, density = mode.get_dos(j)
+
+    def iter(T):
+        f, mu = find_fermi(
+            energy,
+            density,
+            T,
+            j.get_nelect(),
+            mu0=j.content["output/electronic_structure/efermi"],
+        )
+        U, S = energy_entropy(energy, density, f, mu)
+        return {"T": T, "U": U, "S": S, "mu": mu}
+
+    df = pd.DataFrame([iter(T) for T in Ts])
+    df["s"] = df.S / len(j.structure)
+    df["u"] = df.U / len(j.structure)
+    df["TS"] = df["T"] * df["S"]
+    df["Ts"] = df["T"] * df["s"]
+    df["Fel"] = df.U - df.TS
+    df["fel"] = df.u - df.Ts
+    return df
