@@ -229,7 +229,7 @@ def get_s(f):
     return entr(f) + entr(1 - f)
 
 
-def get_S(E, D, T, N=12, gamma=2):
+def get_S(E, D, T, N=12, gamma=1):
     fermi_energy = get_fermi_energy(E, D, T, N)
     f = fermi_distribution(E, T, fermi_energy)
     return gamma * kB * np.sum(get_s(f) * D[:, None])
