@@ -1,0 +1,1 @@
+from pyiron_nodes.large_scale_atomistic.property import theoretical_griffith
