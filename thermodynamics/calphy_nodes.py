@@ -3,7 +3,7 @@ import numpy as np
 from structure_nodes import *
 from thermo_potential import *
 from dataclasses import dataclass, asdict
-from typing import Optional
+from typing import Optional, Union
 
 @Workflow.wrap.as_function_node()
 def Initialize(inputdict, structure, potential_obj, files, potential_config):
@@ -74,7 +74,6 @@ def RunCalculation(calculation, simfolder):
         job = Liquid(calculation=calculation, simfolder=simfolder)
     else:
         raise ValueError("Unknown reference state")
-
     if calculation.mode == "fe":
         routine_fe(job)
     elif calculation.mode == "ts":
@@ -84,6 +83,67 @@ def RunCalculation(calculation, simfolder):
     else:
         raise ValueError("Unknown mode")
     return job
+
+
+@Workflow.wrap.as_function_node()
+def RunTSSolid(calculation, simfolder):
+    from calphy import Solid
+    from calphy.routines import routine_fe, routine_ts
+    
+    job = Solid(calculation=calculation, simfolder=simfolder)
+    input_temperature = job.calc.temperature
+    
+    error = None
+    
+    try:
+        job = routine_fe(job)   
+    except MeltedError:
+        error = 'melted'
+
+    if error is None:
+        for i in range(job.calc.n_iterations):
+            try:
+                job.reversible_scaling(iteration=(i+1))
+            except MeltedError:
+                error = 'melted'
+    
+    if error is None:
+        temp, fe, _ = job.integrate_reversible_scaling(scale_energy=True,
+                                       return_values=True)
+    else:
+        temp = None
+        fe = None
+    return temp, fe, error, input_temperature
+
+@Workflow.wrap.as_function_node()
+def RunTSLiquid(calculation, simfolder):
+    from calphy import Liquid
+    from calphy.routines import routine_fe, routine_ts
+    job = Liquid(calculation=calculation, simfolder=simfolder)
+    input_temperature = job.calc.temperature
+    
+    error = None
+    
+    try:
+        job = routine_fe(job)   
+    except SolidifiedError:
+        error = 'solidified'
+
+    if error is None:
+        for i in range(job.calc.n_iterations):
+            try:
+                job.reversible_scaling(iteration=(i+1))
+            except SolidifiedError:
+                error = 'solidified'
+    
+    if error is None:
+        temp, fe, _ = job.integrate_reversible_scaling(scale_energy=True,
+                                       return_values=True)
+    else:
+        temp = None
+        fe = None
+    return temp, fe, error, input_temperature
+
 
 @Workflow.wrap.as_function_node()
 def GetResults(job):
@@ -102,7 +162,7 @@ def GetResults(job):
         plt.show()
     return results
 
-@Workflow.wrap.as_function_node("temperature", "free_energy")
+@Workflow.wrap.as_function_node("temperature", "free_energy", "input_temperature")
 def ParseTS(job):
     import os
     results = job.report
@@ -113,7 +173,8 @@ def ParseTS(job):
     elif job.calc.mode == 'fe':
         temp = job.report['input']['temperature']
         fe = job.report['results']['free_energy']
-    return temp, fe
+    input_temp = job.report['input']['temperature']
+    return temp, fe, input_temp
 
 @dataclass
 class MD:
@@ -175,16 +236,61 @@ class InputClass:
         self.queue = Queue()
 
 @Workflow.wrap.as_function_node()
+def UpdateReference(inp, reference_phase, make_copy=True):
+    if make_copy:
+        inp = InputClass(**asdict(inp))
+    inp.reference_phase = reference_phase
+    return inp
+
+@Workflow.wrap.as_function_node()
 def UpdateTemperature(inp, temperature, make_copy=True):
     if make_copy:
         inp = InputClass(**asdict(inp))
     inp.temperature = temperature
     return inp
-    
+
 #@Workflow.wrap.as_macro_node("temperature", "free_energy")
-@Workflow.wrap.as_macro_node('temperature')
+@Workflow.wrap.as_macro_node('temperature_array', 'free_energy_output', 'error_status', 'input_temperature')
+def RunTSSolidMacro(wf, inp, species: str, 
+                  potential: str, 
+                  temperature: Union[float, list[float]]):
+
+    wf.step1 = obtain_potential(potential)
+    wf.step2 = get_structure(species=species, repeat=(2,2,2))
+    wf.step2a = UpdateTemperature(inp, temperature)
+    wf.step2b = UpdateReference(inp, 'solid')
+    wf.step3 = Initialize(wf.step2a.outputs.inp, 
+                          wf.step2.outputs.structure,
+                     wf.step1.outputs.element_list,
+                     wf.step1.outputs.files,
+                     wf.step1.outputs.config)
+    wf.step4 = RunTSSolid(wf.step3.outputs.calculation,
+                         wf.step3.outputs.simfolder)
+    return wf.step4.outputs.temp, wf.step4.outputs.fe, wf.step4.outputs.error, wf.step4.outputs.input_temperature
+
+@Workflow.wrap.as_macro_node('temperature_array', 'free_energy_output', 'error_status', 'input_temperature')
+def RunTSLiquidMacro(wf, inp, species: str, 
+                  potential: str, 
+                  temperature: Union[float, list[float]]):
+
+    wf.step1 = obtain_potential(potential)
+    wf.step2 = get_structure(species=species, repeat=(2,2,2))
+    wf.step2a = UpdateTemperature(inp, temperature)
+    wf.step2b = UpdateReference(inp, 'solid')
+    wf.step3 = Initialize(wf.step2a.outputs.inp, 
+                          wf.step2.outputs.structure,
+                     wf.step1.outputs.element_list,
+                     wf.step1.outputs.files,
+                     wf.step1.outputs.config)
+    wf.step4 = RunTSSolid(wf.step3.outputs.calculation,
+                         wf.step3.outputs.simfolder)
+    return wf.step4.outputs.temp, wf.step4.outputs.fe, wf.step4.outputs.error, wf.step4.outputs.input_temperature
+
+#@Workflow.wrap.as_macro_node("temperature", "free_energy")
+@Workflow.wrap.as_macro_node('temperature_array', 'free_energy_output','input_temperature')
 def RunFreeEnergy(wf, inp, species: str, 
-                  potential: str, temperature: float):
+                  potential: str, 
+                  temperature: Union[float, list[float]]):
 
     wf.step1 = obtain_potential(potential)
     wf.step2 = get_structure(species=species, repeat=(2,2,2))
@@ -199,5 +305,5 @@ def RunFreeEnergy(wf, inp, species: str,
     wf.step5 = ParseTS(wf.step4.outputs.job)
     #return wf.step5.outputs.temperature, wf.step5.outputs.free_energy
     #incremented_temp = wf.step5.outputs.temperature + 100. 
-    return wf.step5.outputs.temperature
+    return wf.step5.outputs.temperature, wf.step5.outputs.free_energy, wf.step5.outputs.input_temperature
     
