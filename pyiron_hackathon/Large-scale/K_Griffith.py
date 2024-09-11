@@ -120,7 +120,7 @@ def theor_K_griffith_plane_strain(
     
     return K_GG
 
-@as_function_node("A", "B_inv", "p")
+@as_function_node("crack_param_dict")
 def anisotropic_crack_params(
     C
 ):
@@ -168,7 +168,7 @@ def anisotropic_crack_params(
     B = AB_n[3:6, 0:3]    
     B_inv = np.linalg.inv(B)
 
-    return A, B_inv, p
+    return {'A': A, 'B_inv': B_inv, 'p': p}
 
 @as_function_node("cracked_structure")
 def displace_atoms_crack_aniso(
@@ -176,13 +176,15 @@ def displace_atoms_crack_aniso(
     K_I: Optional[int|float],
     K_II: Optional[int|float],
     K_III: Optional[int|float],
-    A, 
-    B_inv, 
-    p
+    crack_params: Optional[dict]
 ):
 
     import numpy as np
     import math
+
+    A = crack_params['A']
+    B_inv = crack_params['B_inv']
+    p = crack_params['p']
 
     crack_struct = atoms.copy()
     

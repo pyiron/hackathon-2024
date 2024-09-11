@@ -29,19 +29,19 @@ def create_single_species(
             species: desired element
             x_pbc, y_pbc, z_pbc: periodic boundaries, true or false along the three coordinate axes
     '''
-    if (crstal == 'bcc'):
+    if (crystal == 'bcc'):
         from ase.lattice.cubic import BodyCenteredCubic
         crys_txt = BodyCenteredCubic
     if (crystal == 'fcc'):
         from ase.lattice.cubic import FaceCenteredCubic
         crys_txt = FaceCenteredCubic
-    if (crstal == 'dc'):
+    if (crystal == 'dc'):
         from ase.lattice.cubic import Diamond
         crys_txt = Diamond
     if (crystal == 'hcp'):
         from ase.lattice.hexagonal import HexagonalClosedPacked
         crys_txt = HexagonalClosedPacked
-    if (crstal == 'sc'):
+    if (crystal == 'sc'):
         from ase.lattice.cubic import SimpleCubic
         cryst_txt = SimpleCubic
         
