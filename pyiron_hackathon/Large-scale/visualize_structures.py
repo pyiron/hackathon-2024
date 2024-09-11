@@ -14,6 +14,18 @@ def ase2ovito_data(atoms: _ase.Atoms):
     ovito_data = ovito.io.ase.ase_to_ovito(atoms)
     return ovito_data
 
+@as_function_node('plot')
+def ase2ovito_viz(ase_atoms: _ase.Atoms):
+    from ovito.pipeline import StaticSource, Pipeline
+    from ovito.io.ase import ase_to_ovito
+    data = ase_to_ovito(ase_atoms)
+    pipeline = Pipeline(source = StaticSource(data = data))
+    pipeline.add_to_scene()
+    from ovito.vis import Viewport
+    from ipywidgets import Layout
+    vp = Viewport()
+    return vp.create_jupyter_widget(layout=Layout(width='100%'))
+
 @as_function_node()
 def ovito_data2ovito_pipeline(ovito_data):
     from ovito import pipeline
