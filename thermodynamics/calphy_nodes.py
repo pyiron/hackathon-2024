@@ -5,50 +5,6 @@ from thermo_potential import *
 from dataclasses import dataclass, asdict
 from typing import Optional
 
-def CreateInputDict():
-    return {
-        "mode": None,
-        "pressure": 0,
-        "temperature": 0,
-        "reference_phase": None,
-        "npt": True,
-        "n_equilibration_steps": 15000,
-        "n_switching_steps": 25000,
-        "n_print_steps": 1000,
-        "n_iterations": 1,
-        "spring_constants": None,
-        "equilibration_control": "nose-hoover",
-        "melting_cycle": True,
-        "md": {
-            "timestep": 0.001,
-            "n_small_steps": 10000,
-            "n_every_steps": 10,
-            "n_repeat_steps": 10,
-            "n_cycles": 100,
-            "thermostat_damping": 0.5,
-            "barostat_damping": 0.1,
-        },
-        "tolerance": {
-            "lattice_constant": 0.0002,
-            "spring_constant": 0.01,
-            "solid_fraction": 0.7,
-            "liquid_fraction": 0.05,
-            "pressure": 0.5,
-        },
-        "nose_hoover": {
-            "thermostat_damping": 0.1,
-            "barostat_damping": 0.1,
-        },
-        "berendsen": {
-            "thermostat_damping": 100.0,
-            "barostat_damping": 100.0,
-        },
-        "queue": {
-            "cores": 1,
-        }
-
-    }
-
 @Workflow.wrap.as_function_node()
 def Initialize(inputdict, structure, potential_obj, files, potential_config):
     from pyiron_atomistics.lammps.structure import (
@@ -159,9 +115,6 @@ def ParseTS(job):
         fe = job.report['results']['free_energy']
     return temp, fe
 
-
-
-
 @dataclass
 class MD:
     timestep: float = 0.001
@@ -222,12 +175,14 @@ class InputClass:
         self.queue = Queue()
 
 @Workflow.wrap.as_function_node()
-def UpdateTemperature(inp, temperature):
+def UpdateTemperature(inp, temperature, make_copy=True):
+    if make_copy:
+        inp = InputClass(**asdict(inp))
     inp.temperature = temperature
     return inp
-
+    
 #@Workflow.wrap.as_macro_node("temperature", "free_energy")
-@Workflow.wrap.as_macro_node('incremented_temp')
+@Workflow.wrap.as_macro_node('temperature')
 def RunFreeEnergy(wf, inp, species: str, 
                   potential: str, temperature: float):
 
@@ -243,6 +198,6 @@ def RunFreeEnergy(wf, inp, species: str,
                          wf.step3.outputs.simfolder)
     wf.step5 = ParseTS(wf.step4.outputs.job)
     #return wf.step5.outputs.temperature, wf.step5.outputs.free_energy
-    incremented_temp = wf.step5.outputs.temperature + 100. 
-    return incremented_temp
+    #incremented_temp = wf.step5.outputs.temperature + 100. 
+    return wf.step5.outputs.temperature
     
