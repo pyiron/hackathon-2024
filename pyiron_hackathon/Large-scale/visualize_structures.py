@@ -1,21 +1,13 @@
 from pyiron_workflow import as_function_node
 import ase as _ase
+import numpy as _numpy
+import ipywidgets as _ipywidgets
+from typing import Optional
 
-@as_function_node()
-def ase_read(fp: str,
-             format=None):
-    from ase.io import read
-    atoms = read(fp, format=format)
-    return atoms
-
-@as_function_node()
-def ase2ovito_data(atoms: _ase.Atoms):
-    import ovito
-    ovito_data = ovito.io.ase.ase_to_ovito(atoms)
-    return ovito_data
 
 @as_function_node('plot')
 def ase2ovito_viz(ase_atoms: _ase.Atoms):
+    """Visualize ase.Atoms with ovito widget"""
     from ovito.pipeline import StaticSource, Pipeline
     from ovito.io.ase import ase_to_ovito
     data = ase_to_ovito(ase_atoms)
@@ -26,22 +18,11 @@ def ase2ovito_viz(ase_atoms: _ase.Atoms):
     vp = Viewport()
     return vp.create_jupyter_widget(layout=Layout(width='100%'))
 
-@as_function_node()
-def ovito_data2ovito_pipeline(ovito_data):
-    from ovito import pipeline
-    static= pipeline.StaticSource()
-    static.data = ovito_data
-    pipeline = pipeline.Pipeline()
-    return pipeline
-
-@as_function_node()
-def ovito2ase(pipeline):
-    import ovito
-    ase_atoms = ovito.io.ase.ovito_to_ase(pipeline.compute())
-    return ase_atoms
-
 @as_function_node('plot')
-def viz_ovito(pipeline, layout=None):
+def viz_ovito(pipeline, 
+              layout: Optional[_ipywidgets.Layout] =None
+             ):
+    """Visualize ovito pipeline with a ovito widget"""
     from ovito.vis import Viewport
     from ipywidgets import Layout
     layout = layout or Layout(width='100%')
@@ -51,7 +32,27 @@ def viz_ovito(pipeline, layout=None):
 
 @as_function_node('plot')
 def ase_view(atoms: _ase.Atoms):
+    """Visualize ase.Atoms """
     from ase.visualize import view
     return view(atoms, viewer='ngl')
 
+@as_function_node('plot')
+def plot3d(structure: _ase.Atoms,
+           particle_size: Optional[int|float] = 1,
+           #show_cell: bool = True,
+           #show_axes: bool = True,
+           camera: str = 'orthographic',
+           #spacefill: Optional[bool] = True,
+           select_atoms: Optional[_numpy.ndarray] = None,
+          ):
+    """Visualize ase.Atoms using nglview"""
+    from structuretoolkit import plot3d
+    return plot3d(structure=structure, 
+                  particle_size=particle_size, 
+                  #show_cell=show_cell,
+                  #show_axes=show_axes,
+                  camera=camera,
+                  #spacefill=spacefill,
+                  select_atoms=select_atoms
+                 )
 
