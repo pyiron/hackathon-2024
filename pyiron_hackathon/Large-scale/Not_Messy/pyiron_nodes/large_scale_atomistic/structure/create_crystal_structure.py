@@ -43,7 +43,7 @@ def create_single_species(
         crys_txt = HexagonalClosedPacked
     if (crystal == 'sc'):
         from ase.lattice.cubic import SimpleCubic
-        cryst_txt = SimpleCubic
+        crys_txt = SimpleCubic
         
     #from ase.lattice.cubic import Diamond
     #from ase.lattice.cubic import BodyCenteredCubic
