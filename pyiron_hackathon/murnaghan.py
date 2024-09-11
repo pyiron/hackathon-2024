@@ -1,3 +1,4 @@
+from pyiron_workflow import Workflow
 from atomistics.calculators.wrapper import as_task_dict_evaluator
 
 
