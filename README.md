@@ -1,4 +1,7 @@
 # pyiron hackathon 2024 
+
+Team Thermodynamics
+
 This is for repository for the pyiron hackathon from the 9.-11. Sept. 2024 at the [Max-Planck-Institute for Sustainable Materials](https://www.mpie.de/).
 
 ## Topic 
